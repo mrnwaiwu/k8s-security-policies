@@ -1,0 +1,39 @@
+# Kubernetes Audit Policy — CIS 3.2.1 / CKS requirement
+# Apply via kube-apiserver --audit-policy-file flag
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+  # Log all requests at the Metadata level by default
+  - level: Metadata
+
+  # Log secret access at RequestResponse level (full body)
+  - level: RequestResponse
+    resources:
+      - group: ""
+        resources: ["secrets"]
+
+  # Log pod exec and port-forward at RequestResponse
+  - level: RequestResponse
+    resources:
+      - group: ""
+        resources: ["pods/exec", "pods/portforward", "pods/attach"]
+
+  # Log RBAC changes at RequestResponse
+  - level: RequestResponse
+    resources:
+      - group: "rbac.authorization.k8s.io"
+        resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+
+  # Skip noisy read-only system requests
+  - level: None
+    users: ["system:kube-proxy"]
+    verbs: ["watch"]
+    resources:
+      - group: ""
+        resources: ["endpoints", "services"]
+
+  - level: None
+    userGroups: ["system:authenticated"]
+    nonResourceURLs:
+      - "/api*"
+      - "/version"
