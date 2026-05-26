@@ -1,0 +1,11 @@
+# CIS 5.3.2 — Default deny all egress traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-egress
+  namespace: mrnwaiwu-apps
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  # No egress rules = deny all outbound traffic
