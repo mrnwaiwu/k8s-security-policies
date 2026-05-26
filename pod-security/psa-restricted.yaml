@@ -1,0 +1,17 @@
+# Pod Security Admission — restricted profile
+# Enforces the highest security standard for production namespaces.
+# Ref: https://kubernetes.io/docs/concepts/security/pod-security-standards/
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mrnwaiwu-apps
+  labels:
+    # enforce: pod is rejected if it violates the policy
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    # warn: allow but warn on violations
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+    # audit: log violations
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
