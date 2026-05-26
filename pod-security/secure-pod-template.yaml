@@ -1,0 +1,47 @@
+# Secure pod template — use as base for all app deployments
+# Satisfies PSA restricted profile requirements
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-app-template
+  namespace: mrnwaiwu-apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: secure-app
+  template:
+    metadata:
+      labels:
+        app: secure-app
+    spec:
+      automountServiceAccountToken: false    # CIS 5.1.6
+      securityContext:
+        runAsNonRoot: true                   # never run as root
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault               # CKS — enable seccomp
+      containers:
+        - name: app
+          image: your-image:tag
+          securityContext:
+            allowPrivilegeEscalation: false  # CIS 5.2.5
+            readOnlyRootFilesystem: true     # CIS 5.2.4
+            privileged: false                # CIS 5.2.1
+            capabilities:
+              drop: ["ALL"]                  # CIS 5.2.7 — drop all capabilities
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp               # writable temp dir since root fs is read-only
+      volumes:
+        - name: tmp
+          emptyDir: {}
