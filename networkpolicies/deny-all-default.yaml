@@ -1,0 +1,18 @@
+# Default deny-all NetworkPolicy
+# Apply this to any namespace to enforce a zero-trust baseline.
+# Explicitly allow traffic by adding additional NetworkPolicy resources.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-default
+  namespace: default
+  labels:
+    policy-type: baseline
+    managed-by: k8s-security-policies
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  # No ingress or egress rules defined — all traffic is denied by default.
+  # Add specific NetworkPolicy objects to selectively allow required traffic.
