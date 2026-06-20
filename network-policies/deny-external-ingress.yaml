@@ -1,0 +1,46 @@
+# NetworkPolicy: Deny all external ingress to internal services
+# Allows only intra-namespace pod-to-pod traffic.
+# Apply to namespaces hosting internal-only workloads (e.g. databases, config services).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-external-ingress
+  namespace: internal-services
+  labels:
+    policy-type: ingress-restriction
+    managed-by: security-team
+spec:
+  podSelector: {}  # Applies to all pods in the namespace
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow ingress only from pods within the same namespace
+    - from:
+        - podSelector: {}
+---
+# NetworkPolicy: Allow ingress only from the monitoring namespace
+# Permits Prometheus/Grafana scraping from the monitoring namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring-ingress
+  namespace: internal-services
+  labels:
+    policy-type: ingress-restriction
+    managed-by: security-team
+spec:
+  podSelector:
+    matchLabels:
+      expose-metrics: "true"
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 8080
