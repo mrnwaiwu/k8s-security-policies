@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-external-egress
+  namespace: default
+  labels:
+    policy-type: egress-restriction
+    managed-by: k8s-security-policies
+  annotations:
+    description: >
+      Denies all egress traffic to addresses outside the cluster CIDR by default.
+      Workloads that require external egress (e.g. to call third-party APIs or
+      pull from external registries) must be explicitly exempted by applying an
+      additional NetworkPolicy that allows the specific external CIDR or port.
+    policy-owner: platform-security
+    last-reviewed: "2026-06-27"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # Allow intra-cluster communication (pod-to-pod and pod-to-service)
+    - to:
+        - namespaceSelector: {}
+    # Allow DNS resolution via kube-dns / CoreDNS
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
