@@ -1,0 +1,35 @@
+# logging-role.yaml
+# Grants the logging service account read-only access to pods and namespaces
+# for log aggregation and audit trail collection.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: logging-reader
+  labels:
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/managed-by: k8s-security-policies
+  annotations:
+    description: "Read-only access for log aggregation service accounts"
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "namespaces", "nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: logging-reader-binding
+  labels:
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/managed-by: k8s-security-policies
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: logging-reader
+subjects:
+  - kind: ServiceAccount
+    name: logging-agent
+    namespace: logging
