@@ -1,49 +1,70 @@
+---
+# ClusterRole granting read-only access for monitoring tools
+# (Prometheus, Grafana, alerting agents) to scrape cluster metrics
+# and inspect resource states without write privileges.
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
-  name: monitoring-role
-  namespace: monitoring
+  name: monitoring-reader
   labels:
+    app.kubernetes.io/component: monitoring
     app.kubernetes.io/managed-by: k8s-security-policies
-    security.io/reviewed: "true"
+  annotations:
+    description: "Read-only access for monitoring agents to pods, nodes, services, and metrics endpoints."
 rules:
-  # Allow reading pods and their logs for monitoring purposes
   - apiGroups: [""]
-    resources: ["pods", "pods/log", "pods/status"]
+    resources:
+      - nodes
+      - nodes/metrics
+      - nodes/proxy
+      - pods
+      - pods/log
+      - services
+      - endpoints
+      - namespaces
+      - resourcequotas
+      - persistentvolumes
+      - persistentvolumeclaims
     verbs: ["get", "list", "watch"]
-  # Allow reading services and endpoints
-  - apiGroups: [""]
-    resources: ["services", "endpoints"]
-    verbs: ["get", "list", "watch"]
-  # Allow reading ConfigMaps (e.g. for scrape configs)
-  - apiGroups: [""]
-    resources: ["configmaps"]
-    verbs: ["get", "list", "watch"]
-  # Allow reading nodes metrics
-  - apiGroups: [""]
-    resources: ["nodes", "nodes/metrics", "nodes/proxy"]
-    verbs: ["get", "list", "watch"]
-  # Allow reading resource quotas and limit ranges
-  - apiGroups: [""]
-    resources: ["resourcequotas", "limitranges", "namespaces"]
-    verbs: ["get", "list", "watch"]
-  # Allow reading deployments and replicasets
   - apiGroups: ["apps"]
-    resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+    resources:
+      - deployments
+      - daemonsets
+      - replicasets
+      - statefulsets
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["policy"]
+    resources:
+      - poddisruptionbudgets
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs:
+      - "/metrics"
+      - "/metrics/cadvisor"
+      - "/healthz"
+      - "/readyz"
+    verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
-  name: monitoring-role-binding
-  namespace: monitoring
+  name: monitoring-reader-binding
   labels:
+    app.kubernetes.io/component: monitoring
     app.kubernetes.io/managed-by: k8s-security-policies
 subjects:
   - kind: ServiceAccount
-    name: prometheus
+    name: monitoring-agent
     namespace: monitoring
 roleRef:
-  kind: Role
-  name: monitoring-role
+  kind: ClusterRole
+  name: monitoring-reader
   apiGroup: rbac.authorization.k8s.io
