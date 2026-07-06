@@ -1,50 +1,69 @@
-# monitoring-role.yaml
-# Read-only ClusterRole for monitoring service accounts.
-# Grants access to pods, nodes, metrics, and common workload resources
-# without any write or exec permissions.
-
+---
+# ClusterRole: grants read-only access to resources needed by monitoring agents
+# (Prometheus, Datadog, etc.) across all namespaces.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: monitoring-role
+  name: monitoring-reader
   labels:
-    app.kubernetes.io/part-of: k8s-security-policies
-    security.io/managed: "true"
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/managed-by: kubectl
+  annotations:
+    description: "Read-only access for monitoring agents to scrape metrics and inspect workload state."
 rules:
   - apiGroups: [""]
     resources:
-      - pods
       - nodes
-      - namespaces
+      - nodes/metrics
+      - nodes/proxy
+      - pods
       - services
       - endpoints
-      - events
+      - namespaces
+      - resourcequotas
+      - persistentvolumes
+      - persistentvolumeclaims
     verbs: ["get", "list", "watch"]
-  - apiGroups: ["metrics.k8s.io"]
-    resources:
-      - pods
-      - nodes
-    verbs: ["get", "list"]
   - apiGroups: ["apps"]
     resources:
       - deployments
-      - replicasets
       - daemonsets
+      - replicasets
       - statefulsets
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["policy"]
+    resources:
+      - poddisruptionbudgets
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs:
+      - /metrics
+      - /healthz
+      - /readyz
+    verbs: ["get"]
+
 ---
+# ClusterRoleBinding: binds the monitoring-reader role to the monitoring service account
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: monitoring-role-binding
+  name: monitoring-reader-binding
   labels:
-    app.kubernetes.io/part-of: k8s-security-policies
-    security.io/managed: "true"
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/managed-by: kubectl
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: monitoring-role
+  name: monitoring-reader
 subjects:
   - kind: ServiceAccount
-    name: monitoring-sa
+    name: monitoring-agent
     namespace: monitoring
