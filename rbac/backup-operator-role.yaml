@@ -1,0 +1,33 @@
+# Least-privilege role for backup operators.
+# Grants read access to workloads and the ability to create
+# volume snapshots, without any write access to running workloads.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: backup-operator
+  labels:
+    app.kubernetes.io/component: rbac
+    rbac.example.com/purpose: backup
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "persistentvolumeclaims", "persistentvolumes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots", "volumesnapshotcontents"]
+    verbs: ["get", "list", "watch", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backup-operator-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: backup-operator
+subjects:
+  - kind: ServiceAccount
+    name: backup-operator
+    namespace: backup-system
