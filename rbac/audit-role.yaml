@@ -1,0 +1,58 @@
+# RBAC Role: audit-role
+# Grants read-only access to audit-relevant resources for compliance and security review.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: audit-reader
+  labels:
+    app.kubernetes.io/managed-by: k8s-security-policies
+    security.io/role-type: audit
+  annotations:
+    description: "Read-only access to audit logs, events, and security-relevant resources"
+    last-updated: "2026-07-13"
+rules:
+  - apiGroups: [""]
+    resources:
+      - events
+      - pods
+      - pods/log
+      - namespaces
+      - serviceaccounts
+      - configmaps
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources:
+      - roles
+      - rolebindings
+      - clusterroles
+      - clusterrolebindings
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["policy"]
+    resources:
+      - podsecuritypolicies
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - networkpolicies
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["audit.k8s.io"]
+    resources:
+      - "*"
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: audit-reader-binding
+  labels:
+    app.kubernetes.io/managed-by: k8s-security-policies
+  annotations:
+    description: "Binds audit-reader role to the audit service account"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: audit-reader
+subjects:
+  - kind: ServiceAccount
+    name: audit-sa
+    namespace: security
