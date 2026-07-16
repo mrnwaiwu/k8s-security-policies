@@ -1,6 +1,5 @@
----
-# ClusterRole: grants read-only access to resources needed by monitoring agents
-# (Prometheus, Datadog, etc.) across all namespaces.
+# ClusterRole granting read-only access to resources needed by monitoring agents
+# (e.g. Prometheus, Datadog, Grafana Agent) without elevated privileges.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -9,7 +8,7 @@ metadata:
     app.kubernetes.io/component: monitoring
     app.kubernetes.io/managed-by: kubectl
   annotations:
-    description: "Read-only access for monitoring agents to scrape metrics and inspect workload state."
+    description: "Read-only access to pods, nodes, services, and metrics for monitoring agents"
 rules:
   - apiGroups: [""]
     resources:
@@ -17,10 +16,11 @@ rules:
       - nodes/metrics
       - nodes/proxy
       - pods
+      - pods/log
       - services
       - endpoints
       - namespaces
-      - resourcequotas
+      - configmaps
       - persistentvolumes
       - persistentvolumeclaims
     verbs: ["get", "list", "watch"]
@@ -36,22 +36,18 @@ rules:
       - jobs
       - cronjobs
     verbs: ["get", "list", "watch"]
-  - apiGroups: ["autoscaling"]
+  - apiGroups: ["metrics.k8s.io"]
     resources:
-      - horizontalpodautoscalers
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["policy"]
-    resources:
-      - poddisruptionbudgets
-    verbs: ["get", "list", "watch"]
+      - pods
+      - nodes
+    verbs: ["get", "list"]
   - nonResourceURLs:
       - /metrics
       - /healthz
       - /readyz
     verbs: ["get"]
-
 ---
-# ClusterRoleBinding: binds the monitoring-reader role to the monitoring service account
+# ClusterRoleBinding — bind the monitoring-reader role to the monitoring service account
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
