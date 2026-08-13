@@ -1,37 +1,53 @@
-# OPA Gatekeeper — require CPU and memory limits on all containers
-apiVersion: templates.gatekeeper.sh/v1
-kind: ConstraintTemplate
-metadata:
-  name: k8srequireresourcelimits
-spec:
-  crd:
-    spec:
-      names:
-        kind: K8sRequireResourceLimits
-  targets:
-    - target: admission.k8s.gatekeeper.sh
-      rego: |
-        package k8srequireresourcelimits
-
-        violation[{"msg": msg}] {
-          container := input.review.object.spec.containers[_]
-          not container.resources.limits.cpu
-          msg := sprintf("Container %v must set resources.limits.cpu", [container.name])
-        }
-
-        violation[{"msg": msg}] {
-          container := input.review.object.spec.containers[_]
-          not container.resources.limits.memory
-          msg := sprintf("Container %v must set resources.limits.memory", [container.name])
-        }
----
 apiVersion: constraints.gatekeeper.sh/v1beta1
-kind: K8sRequireResourceLimits
+kind: K8sRequiredResources
 metadata:
   name: require-resource-limits
 spec:
   match:
+    excludedNamespaces: ["kube-system", "kube-public", "gatekeeper-system"]
     kinds:
-      - apiGroups: [""]
-        kinds: ["Pod"]
-    namespaces: ["mrnwaiwu-apps"]
+    - apiGroups: [""]
+      kinds: ["Pod"]
+    - apiGroups: ["apps"]
+      kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+  parameters:
+    cpuRequired: true
+    memoryRequired: true
+    storageRequired: false
+---
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredresources
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredResources
+      validation:
+        openAPIV3Schema:
+          properties:
+            cpuRequired:
+              type: boolean
+            memoryRequired:
+              type: boolean
+            storageRequired:
+              type: boolean
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequiredresources
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.limits.cpu
+          input.parameters.cpuRequired
+          msg := sprintf("Container %v missing CPU limit", [container.name])
+        }
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.limits.memory
+          input.parameters.memoryRequired
+          msg := sprintf("Container %v missing memory limit", [container.name])
+        }
